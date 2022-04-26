@@ -5,13 +5,14 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import os
 import argparse
+from copy import copy
 
 
 class Image_blending:
     """
     Main class for image synthesis with graph cuts
     """
-    def __init__(self, Source, sink, Mask, construct_graph=True):
+    def __init__(self, Source, sink, Mask, construct_graph=False):
         """
         Initializes the graph and computes the min-cut.
         :param Source: image to be blended (foreground)
@@ -19,7 +20,7 @@ class Image_blending:
         :param Mask: manual Mask with constrained pixels
         :param construct_graph: if true, graph is saved
         """
-        assert (Source.shape == sink.shape),f"Source and sink must be of same dimensions: {str(Source.shape)} != {str(sink.shape)}"
+        assert (Source.shape == sink.shape),"Source and sink must be of same dimensions"
 
         # Creating a graph object from max-flow library
         graph = maxflow.Graph[float]()
@@ -36,18 +37,17 @@ class Image_blending:
         height = Source.shape[0]
         for i in range(height):
             for j in range(width):
-                # right neighbor
+                # computing the right neighbor
                 if j + 1 < width:
                     weight = self.edge_weights[i, j, 0]
                     graph.add_edge(node_ids[i][j],node_ids[i][j + 1],weight,weight)
 
-                # bottom neighbor
+                #computing the bottom neighbor
                 if i + 1 < height:
                     weight = self.edge_weights[i, j, 1]
                     graph.add_edge(node_ids[i][j], node_ids[i + 1][j], weight, weight)
 
-                # Add terminal edge capacities for the pixels constrained to
-                # belong to the Source/sink.
+                # Add terminal edge capacities for the pixels constrained to belong to the Source/sink.
                 if np.array_equal(Mask[i, j, :], [0, 255, 255]):
                     graph.add_tedge(node_ids[i][j], 0, np.inf)
                 elif np.array_equal(Mask[i, j, :], [255, 128, 0]):
@@ -63,6 +63,17 @@ class Image_blending:
         flow = graph.maxflow()
         print(flow)
         self.sgm = graph.get_grid_segments(node_ids)
+        self.sgm1 = self.sgm
+
+        # # Generating the intermediate output i.e marking the cut pixels on source with black colour
+        src1 = copy(Source)
+        src1[self.sgm1] = 0
+        cv2.imwrite(os.path.join(image_dir,"sol_to_image_cut.png"), src1)
+
+        # Plotting the pixels to be cut from the source
+        img2 = np.int_(np.logical_not(self.sgm))
+        plt.imshow(img2)
+        plt.show()
 
     def edge_weights(self, Source, sink):
         """
@@ -131,99 +142,6 @@ class Image_blending:
         """
         target[self.sgm] = Source[self.sgm]
         return target
-
-    def test_case(self):
-        # Create the graph
-        patch_height = 4
-        patch_width = 5
-
-        # Add the nodes. node_ids has the identifiers of the nodes in the grid.
-        node_ids = graph.add_grid_nodes((patch_height, patch_width))
-
-        edges = [
-            [0, 0, 0, 1, 20, 20],
-            [0, 0, 1, 0, 20, 20],
-            [1, 0, 1, 1, 20, 20],
-            [1, 0, 2, 0, 20, 20],
-            [2, 0, 2, 1, 20, 20],
-            [2, 0, 3, 0, 20, 20],
-            [3, 0, 3, 1, 20, 20],
-
-            [0, 1, 0, 2, 20, 20],
-            [0, 1, 1, 1, 20, 20],
-            [1, 1, 1, 2, 1, 1],
-            [1, 1, 2, 1, 20, 20],
-            [2, 1, 2, 2, 1, 1],
-            [2, 1, 3, 1, 20, 20],
-            [3, 1, 3, 2, 20, 20],
-
-            [0, 2, 0, 3, 20, 20],
-            [0, 2, 1, 2, 1, 1],
-            [1, 2, 1, 3, 20, 20],
-            [1, 2, 2, 2, 20, 20],
-            [2, 2, 2, 3, 20, 20],
-            [2, 2, 3, 2, 1, 1],
-            [3, 2, 3, 3, 20, 20],
-
-            [0, 3, 0, 4, 20, 20],
-            [0, 3, 1, 3, 1, 1],
-            [1, 3, 1, 4, 1, 1],
-            [1, 3, 2, 3, 20, 20],
-            [2, 3, 2, 4, 1, 1],
-            [2, 3, 3, 3, 1, 1],
-            [3, 3, 3, 4, 20, 20],
-
-            [0, 4, 1, 4, 20, 20],
-            [1, 4, 2, 4, 20, 20],
-            [2, 4, 3, 4, 20, 20],
-        ]
-
-        src_edges = [
-            [0, 0],
-            [0, 1],
-            [0, 2],
-            [0, 3],
-            [0, 4],
-            [1, 0],
-            [2, 0],
-            [3, 0],
-            [3, 1],
-            [3, 2],
-            [3, 3],
-            [3, 4],
-            [2, 4],
-            [1, 4]
-        ]
-
-        sink_edges = [[2, 3]]
-
-        for edge in edges:
-            src_row = edge[0]
-            src_col = edge[1]
-            dst_row = edge[2]
-            dst_col = edge[3]
-            weight1 = edge[4]
-            weight2 = edge[5]
-
-            graph.add_edge(node_ids[src_row][src_col], node_ids[dst_row][dst_col], weight1, weight2)
-
-        for edge in sink_edges:
-            node_row = edge[0]
-            node_col = edge[1]
-
-            graph.add_tedge(node_ids[node_row][node_col], 0, np.inf)
-
-        for edge in src_edges:
-            node_row = edge[0]
-            node_col = edge[1]
-
-            graph.add_tedge(node_ids[node_row][node_col], np.inf, 0)
-
-        self.plot_graph_2d(graph, node_ids.shape, True)
-
-        flow = graph.maxflow()
-        sgm = graph.get_grid_segments(node_ids)
-        print(sgm)
 
 
 if __name__ == '__main__':
