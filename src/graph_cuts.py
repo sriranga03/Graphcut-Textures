@@ -66,10 +66,8 @@ class Image_blending:
 
         # Compute max flow / min cut.
         flow = graph.maxflow()
-        print(flow)
         self.sgm = graph.get_grid_segments(node_ids)
         self.sgm1 = self.sgm
-        print(Source[self.sgm])
         
         # Generating the text file containing vector of the pixels which are identified as cut
         np.savetxt("vector_of_the_pixels_identified_as_cut .txt", Source[self.sgm], fmt='% 4d')
@@ -84,15 +82,20 @@ class Image_blending:
         plt.imshow(img2)
         plt.show()
 
-
+        # showing the overlay of source and target images
         over_lay = cv2.addWeighted(Source, 0.5, target, 0.7, 0)
         cv2.imwrite(os.path.join(image_dir, "image_showing_overlap.png"), over_lay)
+
+        # #printing the adjaceny matrix of the graph
+        # adj_m = nx.adjacency_matrix(graph.get_nx_graph())
+        # print(adj_m)  #prints the adjacency list of graph
+        # np.savetxt("adjacency_list.txt", adj_m )
 
     def plot_graph_2d(self, graph, nodes_shape, graph_weights=False, graph_terminals=True, font_size=7):
         """
         Plot the graph to be used in graph cuts
         :param graph: PyMaxflow graph
-        :param nodes_shape: patch shape
+        :param nodes_shape: shape of the image patch generated  from the mask
         :param graph_weights: if true, edge weights are shown
         :param graph_terminals: if true, the terminal nodes are shown
         :param font_size: text font size
