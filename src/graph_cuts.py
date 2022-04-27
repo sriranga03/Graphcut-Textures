@@ -88,34 +88,6 @@ class Image_blending:
         over_lay = cv2.addWeighted(Source, 0.5, target, 0.7, 0)
         cv2.imwrite(os.path.join(image_dir, "image_showing_overlap.png"), over_lay)
 
-    def edge_weights(self, Source, sink):
-        """
-        Computes edge weights based on matching quality cost.
-        :param Source: image to be blended (foreground)
-        :param sink: background image
-        """
-        self.edge_weights = np.zeros((Source.shape[0], Source.shape[1], 2))
-
-        # generating shifted matrices for vector operations.
-        source_left_shifted = np.roll(Source, -1, axis=1)
-        sink_left_shifted = np.roll(sink, -1, axis=1)
-        source_up_shifted = np.roll(Source, -1, axis=0)
-        sink_up_shifted = np.roll(sink, -1, axis=0)
-
-        # Assign edge weights.
-        # For numerical stability, avoid divide by 0.
-        error_p = 1e-10
-
-        # Right neighbor.
-        weight = np.sum(np.square(Source - sink, dtype=np.float) + np.square(source_left_shifted - sink_left_shifted,  dtype=np.float), axis=2)
-        normalizing_factor = np.sum(np.square(Source - source_left_shifted, dtype=np.float) +  np.square(sink - sink_left_shifted,  dtype=np.float), axis=2)
-        self.edge_weights[:, :, 0] = weight / (normalizing_factor + error_p)
-
-        # Bottom neighbor.
-        weight = np.sum(np.square(Source - sink, dtype=np.float) + np.square(source_up_shifted - sink_up_shifted, dtype=np.float), axis=2)
-        normalizing_factor = np.sum(np.square(Source - source_up_shifted, dtype=np.float) + np.square(sink - sink_up_shifted,  dtype=np.float), axis=2)
-        self.edge_weights[:, :, 1] = weight / (normalizing_factor + error_p)
-
     def plot_graph_2d(self, graph, nodes_shape, graph_weights=False, graph_terminals=True, font_size=7):
         """
         Plot the graph to be used in graph cuts
@@ -146,6 +118,36 @@ class Image_blending:
         plt.axis('equal')
         #plt.show()
         plt.savefig("output.jpg")
+        
+    def edge_weights(self, Source, sink):
+        """
+        Computes edge weights based on matching quality cost.
+        :param Source: image to be blended (foreground)
+        :param sink: background image
+        """
+        self.edge_weights = np.zeros((Source.shape[0], Source.shape[1], 2))
+
+        # generating shifted matrices for vector operations.
+        source_left_shifted = np.roll(Source, -1, axis=1)
+        sink_left_shifted = np.roll(sink, -1, axis=1)
+        source_up_shifted = np.roll(Source, -1, axis=0)
+        sink_up_shifted = np.roll(sink, -1, axis=0)
+
+        # Assign edge weights.
+        # For numerical stability, avoid divide by 0.
+        error_p = 1e-10
+
+        # Right neighbor.
+        weight = np.sum(np.square(Source - sink, dtype=np.float) + np.square(source_left_shifted - sink_left_shifted,  dtype=np.float), axis=2)
+        normalizing_factor = np.sum(np.square(Source - source_left_shifted, dtype=np.float) +  np.square(sink - sink_left_shifted,  dtype=np.float), axis=2)
+        self.edge_weights[:, :, 0] = weight / (normalizing_factor + error_p)
+
+        # Bottom neighbor.
+        weight = np.sum(np.square(Source - sink, dtype=np.float) + np.square(source_up_shifted - sink_up_shifted, dtype=np.float), axis=2)
+        normalizing_factor = np.sum(np.square(Source - source_up_shifted, dtype=np.float) + np.square(sink - sink_up_shifted,  dtype=np.float), axis=2)
+        self.edge_weights[:, :, 1] = weight / (normalizing_factor + error_p)
+
+
 
     def pixel_transfer(self, Source, target):
         """
