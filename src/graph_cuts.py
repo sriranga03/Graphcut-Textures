@@ -118,7 +118,7 @@ class Image_blending:
         plt.axis('equal')
         #plt.show()
         plt.savefig("output.jpg")
-        
+
     def edge_weights(self, Source, sink):
         """
         Computes edge weights based on matching quality cost.
