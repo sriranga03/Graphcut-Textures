@@ -66,7 +66,7 @@ The following output under label `image_showing_overlap.png`is a Single image sh
  
  The  `adjacency_matrix.txt` file is the text file containing adjacency list. The following screenshot of the adjacency matrix is added in the images/garden folder
  
- ![adjacency_list_screen_Shot](https://user-images.githubusercontent.com/102194740/165431316-67e05f5b-e2a3-46e6-802e-7feaeb293bb8.png)
+ ![image](https://user-images.githubusercontent.com/102194740/165443888-8f155baa-e363-480d-8ff9-317170c11c37.png)
 
  #Note: The lines that generate the adjacency list are commented as it requires a lot of memory due to networkx library. In my pc the memory was not sufficient so I ran in the google colab, if python stoped working error occurs please execute it in colab
   
