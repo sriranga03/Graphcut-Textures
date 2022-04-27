@@ -73,18 +73,24 @@ class Image_blending:
         np.savetxt("vector_of_the_pixels_identified_as_cut .txt", Source[self.sgm], fmt='% 4d')
 
         # # Generating the intermediate output i.e marking the cut pixels on source with black colour
-        src1 = copy(Source)
-        src1[self.sgm1] = 0
-        cv2.imwrite(os.path.join(image_dir,"sol_to_image_cut.png"), src1)
-
+        image_cut = Source.copy()
+        gray = cv2.cvtColor(Mask, cv2.COLOR_BGR2GRAY)
+        contors = cv2.findContours(gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contors = contors[0] if len(contors) == 2 else contors[1]
+        for c in contors:
+            cv2.drawContours(image_cut, [c], -1, (36, 255, 12), thickness=5)
+        cv2.imwrite(os.path.join(image_dir,"sol_to_image_cut.png"), image_cut)
+ 
         # Plotting the pixels to be cut from the source
         img2 = np.int_(np.logical_not(self.sgm))
-        plt.imshow(img2)
-        plt.show()
+        # plt.imshow(img2)
+        # plt.show()
 
         # showing the overlay of source and target images
         over_lay = cv2.addWeighted(Source, 0.5, target, 0.7, 0)
         cv2.imwrite(os.path.join(image_dir, "image_showing_overlap.png"), over_lay)
+
+
 
         # #printing the adjaceny matrix of the graph
         # adj_m = nx.adjacency_matrix(graph.get_nx_graph())
