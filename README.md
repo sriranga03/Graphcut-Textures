@@ -66,6 +66,7 @@ The following output under label `image_showing_overlap.png`is a Single image sh
  #Note: The lines that generate the adjacency list are commented as it requires a lot of memory due to networkx library. In my pc the memory was not sufficient so I ran in the google colab, if python stoped working error occurs please execute it in colab
   
  The  `result.png` is the final composite image i.e a blended image of the given source and target according to the mask
+ 
   ![result](https://user-images.githubusercontent.com/102194740/165409574-0bd2f2fe-c8b8-47ac-872b-21de37f6d1e8.png)
   
   
