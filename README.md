@@ -87,6 +87,8 @@ The following output under label `image_showing_overlap.png`is a Single image sh
  1. https://github.com/niranjantdesai/image-blending-graphcuts
 
  2. https://stackoverflow.com/questions/29106702/blend-overlapping-images-in-python
+ 
+ 3. https://pyimagesearch.com/2015/11/02/watershed-opencv/
 
 
 
