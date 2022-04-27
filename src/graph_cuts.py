@@ -1,3 +1,5 @@
+# The following approach is inspired from https://github.com/niranjantdesai/image-blending-graphcuts
+
 import maxflow
 import cv2
 import numpy as np
@@ -5,6 +7,9 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import os
 import argparse
+import operator
+from PIL import Image
+from PIL import ImageDraw
 from copy import copy
 
 
@@ -64,6 +69,10 @@ class Image_blending:
         print(flow)
         self.sgm = graph.get_grid_segments(node_ids)
         self.sgm1 = self.sgm
+        print(Source[self.sgm])
+        
+        # Generating the text file containing vector of the pixels which are identified as cut
+        np.savetxt("vector_of_the_pixels_identified_as_cut .txt", Source[self.sgm], fmt='% 4d')
 
         # # Generating the intermediate output i.e marking the cut pixels on source with black colour
         src1 = copy(Source)
@@ -74,6 +83,10 @@ class Image_blending:
         img2 = np.int_(np.logical_not(self.sgm))
         plt.imshow(img2)
         plt.show()
+
+
+        over_lay = cv2.addWeighted(Source, 0.5, target, 0.7, 0)
+        cv2.imwrite(os.path.join(image_dir, "image_showing_overlap.png"), over_lay)
 
     def edge_weights(self, Source, sink):
         """
@@ -91,50 +104,50 @@ class Image_blending:
 
         # Assign edge weights.
         # For numerical stability, avoid divide by 0.
-        eps = 1e-10
+        error_p = 1e-10
 
         # Right neighbor.
         weight = np.sum(np.square(Source - sink, dtype=np.float) + np.square(source_left_shifted - sink_left_shifted,  dtype=np.float), axis=2)
         normalizing_factor = np.sum(np.square(Source - source_left_shifted, dtype=np.float) +  np.square(sink - sink_left_shifted,  dtype=np.float), axis=2)
-        self.edge_weights[:, :, 0] = weight / (normalizing_factor + eps)
+        self.edge_weights[:, :, 0] = weight / (normalizing_factor + error_p)
 
         # Bottom neighbor.
         weight = np.sum(np.square(Source - sink, dtype=np.float) + np.square(source_up_shifted - sink_up_shifted, dtype=np.float), axis=2)
         normalizing_factor = np.sum(np.square(Source - source_up_shifted, dtype=np.float) + np.square(sink - sink_up_shifted,  dtype=np.float), axis=2)
-        self.edge_weights[:, :, 1] = weight / (normalizing_factor + eps)
+        self.edge_weights[:, :, 1] = weight / (normalizing_factor + error_p)
 
-    def plot_graph_2d(self, graph, nodes_shape, plot_weights=False, plot_terminals=True, font_size=7):
+    def plot_graph_2d(self, graph, nodes_shape, graph_weights=False, graph_terminals=True, font_size=7):
         """
         Plot the graph to be used in graph cuts
         :param graph: PyMaxflow graph
         :param nodes_shape: patch shape
-        :param plot_weights: if true, edge weights are shown
-        :param plot_terminals: if true, the terminal nodes are shown
+        :param graph_weights: if true, edge weights are shown
+        :param graph_terminals: if true, the terminal nodes are shown
         :param font_size: text font size
         """
-        X, Y = np.mgrid[:nodes_shape[0], :nodes_shape[1]]
-        aux = np.array([Y.ravel(), X[::-1].ravel()]).T
-        positions = {i: v for i, v in enumerate(aux)}
-        positions['s'] = (-1, nodes_shape[0] / 2.0 - 0.5)
-        positions['t'] = (nodes_shape[1], nodes_shape[0] / 2.0 - 0.5)
+        id_x, id_y = np.mgrid[:nodes_shape[0], :nodes_shape[1]]
+        aux = np.array([id_y.ravel(), id_x[::-1].ravel()]).T
+        posit = {i: v for i, v in enumerate(aux)}
+        posit['s'] = (-1, nodes_shape[0] / 2.0 - 0.5)
+        posit['t'] = (nodes_shape[1], nodes_shape[0] / 2.0 - 0.5)
 
-        graph_maxflow = graph.get_nx_graph()
-        print("graph_maxflow created")
-        if not plot_terminals:
-            graph_maxflow.remove_nodes_from(['s', 't'])
+        plot_maxflow = graph.get_nx_graph()
+        print("maxflow graph is  created",plot_maxflow)
+        if not graph_terminals:
+            plot_maxflow.remove_nodes_from(['s', 't'])
 
-        nx.draw(graph_maxflow, pos=positions)
+        nx.draw(plot_maxflow, pos=posit)
 
-        if plot_weights:
+        if graph_weights:
             edge_labels = {}
-            for u, v, d in graph_maxflow.edges(data=True):
+            for u, v, d in plot_maxflow.edges(data=True):
                 edge_labels[(u, v)] = d['weight']
-            nx.draw_networkx_edge_labels(graph_maxflow, pos=positions, edge_labels=edge_labels, label_pos=0.3, font_size=font_size)
+            nx.draw_networkx_edge_labels(plot_maxflow, pos=posit, edge_labels=edge_labels, label_pos=0.3, font_size=font_size)
         plt.axis('equal')
         #plt.show()
         plt.savefig("output.jpg")
 
-    def blend(self, Source, target):
+    def pixel_transfer(self, Source, target):
         """
         Blends the target image with the Source image based on the graph cut.
         :param Source: Source image
@@ -146,7 +159,7 @@ class Image_blending:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', dest='image_dir', required=True, help='Image directory')
+    parser.add_argument('-i', dest='image_dir', required=True, help='Please paste the directory of Images')
     args = parser.parse_args()
 
     # Read the images and the Mask.
@@ -156,8 +169,8 @@ if __name__ == '__main__':
     Mask = cv2.imread(os.path.join(image_dir, 'mask.png'))
 
     # Compute the min-cut.
-    graphcuts = Image_blending(Source, target, Mask)
+    image_blend = Image_blending(Source, target, Mask)
 
     # Save the output.
-    target = graphcuts.blend(Source, target)
+    target = image_blend.pixel_transfer(Source, target)
     cv2.imwrite(os.path.join(image_dir, "result.png"), target)
